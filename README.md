@@ -1,6 +1,6 @@
 # bogoka
 
-peerflix cli frontend
+peerflix cli wrapper
 
 # How to run
 
