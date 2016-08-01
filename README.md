@@ -13,3 +13,6 @@ peerflix cli frontend
 # Protip
 
 - install [mpv](https://mpv.io/)
+
+# Demo
+[![asciicast](https://asciinema.org/a/6vsidq39blnhkelathwkimr59.png)](https://asciinema.org/a/6vsidq39blnhkelathwkimr59)
