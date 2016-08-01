@@ -9,3 +9,7 @@ peerflix cli frontend
 - download or git clone this repo
 - manually install all dependencies
 - profit
+
+# Protip
+
+- install [mpv](https://mpv.io/)
