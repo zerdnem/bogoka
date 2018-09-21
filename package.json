@@ -15,5 +15,14 @@
   "bugs": {
     "url": "https://github.com/zerdnem/bogoka/issues"
   },
-  "homepage": "https://github.com/zerdnem/bogoka#readme"
+  "homepage": "https://github.com/zerdnem/bogoka#readme",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "inquirer": "^6.2.0",
+    "moment": "^2.22.2",
+    "read-torrent": "^1.3.0",
+    "request": "^2.88.0",
+    "thepiratebay": "^1.4.7",
+    "xml2json": "^0.11.2"
+  }
 }
