@@ -1,4 +1,3 @@
-var tpb = require('./thepiratebay');
 var inquirer = require('inquirer');
 var tparse = require('./torrent_parse');
 var subtitles = require('./subtitles');
