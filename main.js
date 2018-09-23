@@ -1,81 +1,83 @@
-const spawn = require("child_process").spawn;
-const path = require("path");
-const process = require("process");
-const fs = require("fs");
-const os = require("os");
+const spawn = require('child_process').spawn;
+const path = require('path');
+const process = require('process');
+const fs = require('fs');
+const os = require('os');
 
-const request = require("request");
-const chalk = require("chalk");
-const tpb = require("thepiratebay");
-const inquirer = require("inquirer");
+const request = require('request');
+const chalk = require('chalk');
+const tpb = require('thepiratebay');
+const inquirer = require('inquirer');
 
-const tparse = require("./torrent-parse");
-const nyaa = require("./nyaa");
+const tparse = require('./torrent-parse');
+const yts = require('./yts');
+const nyaa = require('./nyaa');
 
-const peerflix_player = "";
-const subtitle_language = "eng";
+const peerflix_player = '';
+const subtitle_language = 'eng';
 
 let torrent_provider;
 
+const providers = [
+  {name: 'tpb', message: 'Search movie or tv show: '},
+  {name: 'yts', message: 'Search movie: '},
+  {name: 'nyaa', message: 'Search anime: '},
+];
+
 function selectTorrentProvider() {
-  "use strict";
+  'use strict';
   inquirer
     .prompt([
       {
-        type: "list",
-        message: "Select torrent provider: ",
-        name: "torrent_provider",
-        choices: ["thepiratebay", "nyaa"]
-      }
+        type: 'list',
+        message: 'Select torrent provider: ',
+        name: 'torrent_provider',
+        choices: providers.map(provider => provider.name),
+      },
     ])
     .then(answer => {
       const query = answer.torrent_provider;
-      switch (query) {
-        case "thepiratebay":
-          startTpb();
-          break;
-        case "nyaa":
-          startNyaa();
-          break;
-      }
+      providers.map(provider => {
+        if (query == provider.name) {
+          startProvider(provider.name, provider.message);
+        }
+      });
     });
 }
 
-function startNyaa() {
-  "use strict";
+function startProvider(provider, message) {
+  'use strict';
   inquirer
     .prompt([
       {
-        type: "input",
-        message: "Search anime: ",
-        name: "name"
-      }
+        type: 'input',
+        message: message,
+        name: 'name',
+      },
     ])
     .then(answers => {
       const query = answers.name;
       torrent_provider = query;
-      nyaa.search(query)
-        .then(data => selectTorrent(data))
-        .catch(e => console.log(chalk.red("[-] ") + e));
-    });
-}
-
-function startTpb() {
-  "use strict";
-  inquirer
-    .prompt([
-      {
-        type: "input",
-        message: "Movie or tv show: ",
-        name: "name"
+      switch (provider) {
+        case 'tpb':
+          tpb
+            .search(query)
+            .then(data => selectTorrent(data))
+            .catch(e => console.log(chalk.red('[-] ') + e));
+          break;
+        case 'yts':
+          yts
+            .search(query)
+            .then(data => selectTorrent(data))
+            .catch(e => console.log(chalk.red('[-] ') + e));
+          break;
+        case 'nyaa':
+          nyaa
+            .search(query)
+            .then(data => selectTorrent(data))
+            .catch(e => console.log(chalk.red('[-] ') + e));
+          break;
       }
-    ])
-    .then(answers => {
-      const query = answers.name;
-      torrent_provider = query;
-      tpb.search(query)
-        .then(data => selectTorrent(data))
-        .catch(e => console.log(chalk.red("[-] ") + e));
     });
 }
 
@@ -88,33 +90,28 @@ function selectTorrent(data) {
     choices.push(name);
     choices.push({
       name: `${chalk.gray(seeders)} Seeds, ${chalk.gray(size)}`,
-      disabled: "Info"
+      disabled: 'Info',
     });
   });
-  const select_torrent = "Press enter to choose torrent.";
+  const select_torrent = 'Press enter to choose torrent.';
   const questions = [
     {
-      type: "list",
-      name: "torrent",
+      type: 'list',
+      name: 'torrent',
       message: select_torrent,
-      choices: choices
-    }
+      choices: choices,
+    },
   ];
   inquirer.prompt(questions).then(answer => {
     const choice = answer.torrent;
     data.map(torrent => {
       if (choice === torrent.name) {
         if (torrent.url) {
-          const torrentfile = download(
-            torrent.url,
-            torrent.name.split(" ").join("-")
+          download(torrent.url, choice, 'torrent', file =>
+            parseTorrent(file, choice),
           );
-          parseTorrent(torrentfile, choice);
         } else {
-          parseTorrent(
-            torrent.magnetLink || torrent.torrent_link,
-            choice
-          );
+          parseTorrent(torrent.magnetLink || torrent.torrent_link, choice);
         }
       }
     });
@@ -124,9 +121,7 @@ function selectTorrent(data) {
 function parseTorrent(torrent, query) {
   tparse.parseTorrent(torrent).then(data => {
     if (data) {
-      console.log(
-        chalk.green("[+] ") + "Multiple torrent file detected."
-      );
+      console.log(chalk.green('[+] ') + 'Multiple torrent file detected.');
       let torrent_count = 1;
 
       data.map(torrents => {
@@ -136,87 +131,75 @@ function parseTorrent(torrent, query) {
       inquirer
         .prompt([
           {
-            type: "input",
-            name: "torrent",
+            type: 'input',
+            name: 'torrent',
             message: chalk.green(
-              "Select file in torrent to stream (eg. 1, 2, 3..) or (b)ack or (e)xit: "
+              'Select file in torrent to stream (eg. 1, 2, 3..) or (b)ack or (e)xit: ',
             ),
             validate: value => {
               if (value > data.length) {
                 return (
-                  "Please enter a valid file number (1-" +
-                  data.length +
-                  ")"
+                  'Please enter a valid file number (1-' + data.length + ')'
                 );
               } else if (!value) {
                 return (
-                  "Please enter a valid file number (1-" +
-                  data.length +
-                  ")"
+                  'Please enter a valid file number (1-' + data.length + ')'
                 );
               } else if (!value.match(/\d+/g)) {
                 return (
-                  "Please enter a valid torrent number (1-" +
-                  data.length +
-                  ")"
+                  'Please enter a valid torrent number (1-' + data.length + ')'
                 );
               } else {
                 return true;
               }
-            }
-          }
+            },
+          },
         ])
         .then(answer => {
-          if (answer.torrent === "b") {
+          if (answer.torrent === 'b') {
             start(options);
-          } else if (answer.torrent === "e") {
+          } else if (answer.torrent === 'e') {
             exit();
           } else {
             const torrent_index = answer.torrent - 1;
             const torrent_title = data[torrent_index];
-            console.log("Streaming " + chalk.green(torrent_title));
-            spawn("peerflix", [
-              torrent,
-              `--i=${torrent_index}`,
-              "--mpv"
-            ]);
+            console.log('Streaming ' + chalk.green(torrent_title));
+            spawn('peerflix', [torrent, `--i=${torrent_index}`, '--mpv']);
           }
         })
         .catch(e => console.log(chalk.red(e)));
     } else {
-      if (torrent_provider == "thepiratebay") {
+      if (torrent_provider == 'tpb') {
         const subtitle = opensubtitle
           .fetchSub(subtitle_language, query)
           .then(data => data)
           .catch(e => console.log(chalk.red(e)));
         if (subtitle) {
           const subtitle_file = path.resolve(subtitle);
-          spawn("peerflix", [
-            torrent,
-            `--subtitles=${subtitle_file}`,
-            "--mpv"
-          ]);
+          spawn('peerflix', [torrent, `--subtitles=${subtitle_file}`, '--mpv']);
         }
-        spawn("peerflix", [torrent, "--mpv"]);
+        spawn('peerflix', [torrent, '--mpv']);
       }
 
-      spawn("peerflix", [torrent, "--mpv"]);
+      spawn('peerflix', [torrent, '--mpv']);
     }
   });
 }
 
 function exit() {
-  console.log(chalk.red("Exiting app..."));
+  console.log(chalk.red('Exiting app...'));
   process.exit(0);
 }
 
-function download(url, filename) {
-  request.get(url).on("response", res => {
-    const torrent = path.resolve(`${os.tmpdir()}/${filename}.torrent`);
+function download(url, filename, ext, cb) {
+  request.get(url).on('response', res => {
+    const file = path.resolve(
+      `${os.tmpdir()}/${filename.split(' ').join('-')}.${ext}`,
+    );
     const fws = fs.createWriteStream(torrent);
     res.pipe(fws);
-    res.on("end", () => {
-      return torrent;
+    res.on('end', () => {
+      return cb(file);
     });
   });
 }
